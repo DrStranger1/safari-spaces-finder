@@ -20,6 +20,8 @@ export default function SearchPage() {
   const { user } = useAuth();
   const [properties, setProperties] = useState<Property[]>([]);
   const [images, setImages] = useState<Record<string, string>>({});
+  const [ownerPhones, setOwnerPhones] = useState<Record<string, string>>({});
+  const [verifiedOwners, setVerifiedOwners] = useState<Set<string>>(new Set());
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
@@ -43,19 +45,33 @@ export default function SearchPage() {
     const { data } = await q;
     setProperties(data || []);
 
-    // Fetch first image for each property
     if (data && data.length > 0) {
+      const ids = data.map(p => p.id);
       const { data: imgs } = await supabase
         .from('property_images')
         .select('property_id, image_url')
-        .in('property_id', data.map(p => p.id))
+        .in('property_id', ids)
         .order('display_order', { ascending: true });
 
       const imgMap: Record<string, string> = {};
-      imgs?.forEach(img => {
-        if (!imgMap[img.property_id]) imgMap[img.property_id] = img.image_url;
-      });
+      imgs?.forEach(img => { if (!imgMap[img.property_id]) imgMap[img.property_id] = img.image_url; });
       setImages(imgMap);
+
+      // Fetch owner info
+      const ownerIds = [...new Set(data.map(p => p.owner_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, phone, is_verified')
+        .in('user_id', ownerIds);
+
+      const phones: Record<string, string> = {};
+      const verified = new Set<string>();
+      profiles?.forEach(p => {
+        if (p.phone) phones[p.user_id] = p.phone;
+        if (p.is_verified) verified.add(p.user_id);
+      });
+      setOwnerPhones(phones);
+      setVerifiedOwners(verified);
     }
 
     setLoading(false);
@@ -96,7 +112,6 @@ export default function SearchPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto px-4 py-6">
-        {/* Search bar */}
         <div className="flex gap-3 mb-6">
           <div className="relative flex-1">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -114,7 +129,6 @@ export default function SearchPage() {
           <Button onClick={applyFilters}>Search</Button>
         </div>
 
-        {/* Filters */}
         {showFilters && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 p-4 rounded-lg border bg-card animate-fade-in">
             <div>
@@ -142,7 +156,6 @@ export default function SearchPage() {
           </div>
         )}
 
-        {/* Results */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -162,6 +175,8 @@ export default function SearchPage() {
                   imageUrl={images[p.id]}
                   isFavorite={favorites.has(p.id)}
                   onToggleFavorite={user ? () => toggleFavorite(p.id) : undefined}
+                  ownerPhone={ownerPhones[p.owner_id]}
+                  isVerified={verifiedOwners.has(p.owner_id)}
                 />
               ))}
             </div>
