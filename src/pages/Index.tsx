@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, MapPin, Shield, Home, Building2, DoorOpen, Briefcase, ArrowRight, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import TypewriterText from '@/components/TypewriterText';
 import PropertyCard from '@/components/PropertyCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
