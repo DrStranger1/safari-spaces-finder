@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Bed, Bath, Maximize, Phone, Mail, ArrowLeft, Heart, Hospital, Bus, ShoppingCart, Route, Loader2 } from 'lucide-react';
+import { MapPin, Bed, Bath, Maximize, Phone, Mail, ArrowLeft, Heart, Hospital, Bus, ShoppingCart, Route, Loader2, ShieldCheck, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Database } from '@/integrations/supabase/types';
 
@@ -25,14 +25,14 @@ export default function PropertyDetail() {
   const [property, setProperty] = useState<Property | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [services, setServices] = useState<NearbyService[]>([]);
-  const [owner, setOwner] = useState<{ full_name: string; phone: string | null } | null>(null);
+  const [owner, setOwner] = useState<{ full_name: string; phone: string | null; is_verified: boolean } | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
 
   useEffect(() => {
     if (!id) return;
-    const fetch = async () => {
+    const fetchData = async () => {
       const [{ data: prop }, { data: imgs }, { data: svc }] = await Promise.all([
         supabase.from('properties').select('*').eq('id', id).single(),
         supabase.from('property_images').select('image_url').eq('property_id', id).order('display_order'),
@@ -43,7 +43,7 @@ export default function PropertyDetail() {
       setServices(svc || []);
 
       if (prop) {
-        const { data: ownerProfile } = await supabase.from('profiles').select('full_name, phone').eq('user_id', prop.owner_id).single();
+        const { data: ownerProfile } = await supabase.from('profiles').select('full_name, phone, is_verified').eq('user_id', prop.owner_id).single();
         setOwner(ownerProfile);
       }
 
@@ -54,7 +54,7 @@ export default function PropertyDetail() {
 
       setLoading(false);
     };
-    fetch();
+    fetchData();
   }, [id, user]);
 
   const toggleFavorite = async () => {
@@ -68,6 +68,10 @@ export default function PropertyDetail() {
   };
 
   const formatPrice = (n: number) => new Intl.NumberFormat('en-TZ').format(n);
+
+  const whatsappUrl = owner?.phone
+    ? `https://wa.me/${owner.phone.replace(/[^0-9+]/g, '')}?text=${encodeURIComponent(`Hi, I'm interested in your property: ${property?.title} (${property?.district})`)}`
+    : null;
 
   if (loading) {
     return (
@@ -125,7 +129,14 @@ export default function PropertyDetail() {
             <div className="space-y-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h1 className="font-display text-2xl md:text-3xl font-bold">{property.title}</h1>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="font-display text-2xl md:text-3xl font-bold">{property.title}</h1>
+                    {owner?.is_verified && (
+                      <Badge className="bg-emerald-500 text-white border-0 flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3" /> Verified Listing
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-muted-foreground flex items-center gap-1 mt-1">
                     <MapPin className="w-4 h-4" /> {property.address}, {property.district}
                   </p>
@@ -208,10 +219,27 @@ export default function PropertyDetail() {
                 </p>
                 {owner && (
                   <div className="space-y-3 pt-2 border-t">
-                    <p className="font-medium">Listed by {owner.full_name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">Listed by {owner.full_name}</p>
+                      {owner.is_verified && (
+                        <Badge variant="outline" className="text-emerald-600 border-emerald-300 text-xs">
+                          <ShieldCheck className="w-3 h-3 mr-1" /> Verified
+                        </Badge>
+                      )}
+                    </div>
+                    {whatsappUrl && (
+                      <a
+                        href={whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-[#25D366] hover:bg-[#20BD5A] text-white font-medium transition-colors"
+                      >
+                        <MessageCircle className="w-5 h-5" /> WhatsApp Landlord
+                      </a>
+                    )}
                     {owner.phone && (
                       <Button className="w-full" asChild>
-                        <a href={`tel:${owner.phone}`}><Phone className="w-4 h-4 mr-2" /> Call Landlord</a>
+                        <a href={`tel:${owner.phone}`}><Phone className="w-4 h-4 mr-2" /> Call {owner.phone}</a>
                       </Button>
                     )}
                     <Button variant="outline" className="w-full" asChild>
