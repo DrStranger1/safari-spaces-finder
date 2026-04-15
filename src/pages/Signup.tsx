@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Home, Loader2, User, Building } from 'lucide-react';
+import { Home, Loader2, User, Building, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 type Role = 'renter' | 'landlord';
@@ -14,6 +14,7 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [role, setRole] = useState<Role>('renter');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
@@ -23,12 +24,12 @@ export default function Signup() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await signUp(email, password, fullName, role);
+    const { error } = await signUp(email, password, fullName, role, phone);
     setLoading(false);
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Account created!', description: role === 'landlord' ? 'Your account is pending verification by an admin.' : 'You can now browse and save properties.' });
+      toast({ title: 'Account created!', description: role === 'landlord' ? 'Your account is pending verification by an admin.' : 'Please check your email to verify your account.' });
       navigate('/login');
     }
   };
@@ -79,6 +80,14 @@ export default function Signup() {
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
               <Input id="fullName" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Doe" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input id="phone" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+255 7XX XXX XXX" className="pl-10" />
+              </div>
+              <p className="text-xs text-muted-foreground">Used for WhatsApp contact & account recovery</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
