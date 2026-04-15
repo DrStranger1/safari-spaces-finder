@@ -119,8 +119,13 @@ export default function Index() {
             <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-medium">
               <MapPin className="w-4 h-4" /> Dar es Salaam, Tanzania
             </div>
-            <h1 className="font-display text-4xl md:text-6xl font-bold text-foreground leading-tight">
-              Find a house in Dar in minutes — <span className="text-primary">no brokers, no stress</span>
+            <h1 className="font-display text-2xl md:text-4xl font-bold text-foreground leading-tight max-w-2xl mx-auto">
+              <TypewriterText
+                text="Find a house in Dar in minutes — no brokers, no stress"
+                highlightText="no brokers, no stress"
+                highlightClassName="text-primary"
+                speed={45}
+              />
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto">
               Verified rental properties — houses, apartments, rooms, and offices. Connect directly with landlords via WhatsApp.
