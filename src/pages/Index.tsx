@@ -160,15 +160,10 @@ export default function Index() {
 
       {/* Featured Listings */}
       <section className="container mx-auto px-4 py-16">
-        <div className="flex flex-col items-center text-center mb-8">
-          <div>
-            <h2 className="font-display text-2xl md:text-3xl font-bold">🔥 Featured Listings</h2>
-            <p className="text-muted-foreground mt-1">Popular properties in Dar es Salaam</p>
-          </div>
-        </div>
-        <div className="flex justify-center mb-8">
-          </div>
-          <Button variant="outline" onClick={() => navigate('/search')}>
+        <div className="text-center mb-8">
+          <h2 className="font-display text-2xl md:text-3xl font-bold">🔥 Featured Listings</h2>
+          <p className="text-muted-foreground mt-1">Popular properties in Dar es Salaam</p>
+          <Button variant="outline" className="mt-4" onClick={() => navigate('/search')}>
             View All <ArrowRight className="w-4 h-4 ml-1" />
           </Button>
         </div>
