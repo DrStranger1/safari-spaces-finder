@@ -1,0 +1,229 @@
+import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import Navbar from '@/components/Navbar';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { MapPin, Bed, Bath, Maximize, Phone, Mail, ArrowLeft, Heart, Hospital, Bus, ShoppingCart, Route, Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Database } from '@/integrations/supabase/types';
+
+type Property = Database['public']['Tables']['properties']['Row'];
+type NearbyService = Database['public']['Tables']['nearby_services']['Row'];
+
+const serviceIcons: Record<string, any> = {
+  hospital: Hospital,
+  transport: Bus,
+  market: ShoppingCart,
+  road: Route,
+};
+
+export default function PropertyDetail() {
+  const { id } = useParams();
+  const { user } = useAuth();
+  const [property, setProperty] = useState<Property | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [services, setServices] = useState<NearbyService[]>([]);
+  const [owner, setOwner] = useState<{ full_name: string; phone: string | null } | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [activeImage, setActiveImage] = useState(0);
+
+  useEffect(() => {
+    if (!id) return;
+    const fetch = async () => {
+      const [{ data: prop }, { data: imgs }, { data: svc }] = await Promise.all([
+        supabase.from('properties').select('*').eq('id', id).single(),
+        supabase.from('property_images').select('image_url').eq('property_id', id).order('display_order'),
+        supabase.from('nearby_services').select('*').eq('property_id', id),
+      ]);
+      setProperty(prop);
+      setImages(imgs?.map(i => i.image_url) || []);
+      setServices(svc || []);
+
+      if (prop) {
+        const { data: ownerProfile } = await supabase.from('profiles').select('full_name, phone').eq('user_id', prop.owner_id).single();
+        setOwner(ownerProfile);
+      }
+
+      if (user) {
+        const { data: fav } = await supabase.from('favorites').select('id').eq('user_id', user.id).eq('property_id', id).maybeSingle();
+        setIsFavorite(!!fav);
+      }
+
+      setLoading(false);
+    };
+    fetch();
+  }, [id, user]);
+
+  const toggleFavorite = async () => {
+    if (!user || !id) return;
+    if (isFavorite) {
+      await supabase.from('favorites').delete().eq('user_id', user.id).eq('property_id', id);
+    } else {
+      await supabase.from('favorites').insert({ user_id: user.id, property_id: id });
+    }
+    setIsFavorite(!isFavorite);
+  };
+
+  const formatPrice = (n: number) => new Intl.NumberFormat('en-TZ').format(n);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex items-center justify-center py-32"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+      </div>
+    );
+  }
+
+  if (!property) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-20 text-center">
+          <p className="text-muted-foreground text-lg mb-4">Property not found.</p>
+          <Button asChild variant="outline"><Link to="/search"><ArrowLeft className="w-4 h-4 mr-2" /> Back to Search</Link></Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="container mx-auto px-4 py-6">
+        <Link to="/search" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
+          <ArrowLeft className="w-4 h-4" /> Back to listings
+        </Link>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Main content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Image gallery */}
+            <div className="space-y-3">
+              <div className="aspect-[16/10] rounded-xl overflow-hidden bg-muted">
+                {images.length > 0 ? (
+                  <img src={images[activeImage]} alt={property.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">No images</div>
+                )}
+              </div>
+              {images.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {images.map((img, i) => (
+                    <button key={i} onClick={() => setActiveImage(i)} className={`shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition-all ${i === activeImage ? 'border-primary' : 'border-transparent'}`}>
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Title & details */}
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h1 className="font-display text-2xl md:text-3xl font-bold">{property.title}</h1>
+                  <p className="text-muted-foreground flex items-center gap-1 mt-1">
+                    <MapPin className="w-4 h-4" /> {property.address}, {property.district}
+                  </p>
+                </div>
+                {user && (
+                  <Button variant="outline" size="icon" onClick={toggleFavorite}>
+                    <Heart className={`w-4 h-4 ${isFavorite ? 'fill-primary text-primary' : ''}`} />
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Badge variant="secondary" className="text-sm py-1 px-3">{property.property_type}</Badge>
+                {property.bedrooms > 0 && <Badge variant="outline" className="text-sm py-1 px-3"><Bed className="w-3.5 h-3.5 mr-1" /> {property.bedrooms} Bed</Badge>}
+                {property.bathrooms > 0 && <Badge variant="outline" className="text-sm py-1 px-3"><Bath className="w-3.5 h-3.5 mr-1" /> {property.bathrooms} Bath</Badge>}
+                {property.area_sqm && <Badge variant="outline" className="text-sm py-1 px-3"><Maximize className="w-3.5 h-3.5 mr-1" /> {property.area_sqm} m²</Badge>}
+              </div>
+
+              <div className="prose prose-sm max-w-none">
+                <h3 className="font-display text-lg font-semibold">Description</h3>
+                <p className="text-muted-foreground whitespace-pre-wrap">{property.description}</p>
+              </div>
+
+              {property.amenities && property.amenities.length > 0 && (
+                <div>
+                  <h3 className="font-display text-lg font-semibold mb-2">Amenities</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {property.amenities.map(a => <Badge key={a} variant="outline">{a}</Badge>)}
+                  </div>
+                </div>
+              )}
+
+              {services.length > 0 && (
+                <div>
+                  <h3 className="font-display text-lg font-semibold mb-3">Nearby Services</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {services.map(s => {
+                      const Icon = serviceIcons[s.service_type] || MapPin;
+                      return (
+                        <div key={s.id} className="flex items-center gap-3 p-3 rounded-lg border">
+                          <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                            <Icon className="w-4 h-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{s.name}</p>
+                            {s.distance_km && <p className="text-xs text-muted-foreground">{s.distance_km} km away</p>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Map */}
+              {property.latitude && property.longitude && (
+                <div>
+                  <h3 className="font-display text-lg font-semibold mb-3">Location</h3>
+                  <div className="aspect-video rounded-xl overflow-hidden border">
+                    <iframe
+                      title="Property Location"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${property.longitude - 0.01}%2C${property.latitude - 0.01}%2C${property.longitude + 0.01}%2C${property.latitude + 0.01}&layer=mapnik&marker=${property.latitude}%2C${property.longitude}`}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="p-6 space-y-4">
+                <p className="text-3xl font-bold text-primary">
+                  TZS {formatPrice(property.price)}
+                  <span className="text-sm font-normal text-muted-foreground">/month</span>
+                </p>
+                {owner && (
+                  <div className="space-y-3 pt-2 border-t">
+                    <p className="font-medium">Listed by {owner.full_name}</p>
+                    {owner.phone && (
+                      <Button className="w-full" asChild>
+                        <a href={`tel:${owner.phone}`}><Phone className="w-4 h-4 mr-2" /> Call Landlord</a>
+                      </Button>
+                    )}
+                    <Button variant="outline" className="w-full" asChild>
+                      <a href={`mailto:?subject=Inquiry about ${property.title}`}><Mail className="w-4 h-4 mr-2" /> Send Email</a>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
