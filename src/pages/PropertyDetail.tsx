@@ -31,6 +31,8 @@ export default function PropertyDetail() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
+  const [areaAvg, setAreaAvg] = useState<number | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -47,6 +49,18 @@ export default function PropertyDetail() {
       if (prop) {
         const { data: ownerProfile } = await supabase.from('profiles').select('full_name, phone, is_verified').eq('user_id', prop.owner_id).single();
         setOwner(ownerProfile);
+
+        // Area average for same district + type
+        const { data: comps } = await supabase
+          .from('properties')
+          .select('price')
+          .eq('status', 'active')
+          .eq('district', prop.district)
+          .eq('property_type', prop.property_type);
+        if (comps && comps.length > 1) {
+          const avg = comps.reduce((s, c) => s + Number(c.price), 0) / comps.length;
+          setAreaAvg(avg);
+        }
       }
 
       if (user) {
