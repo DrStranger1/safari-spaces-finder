@@ -209,9 +209,17 @@ export default function PropertyDetail() {
               </div>
 
               {areaAvg !== null && (
-                <div className="p-3 rounded-lg bg-muted/50 border text-sm">
-                  <span className="text-muted-foreground">Average rent for {property.property_type}s in {property.district}: </span>
-                  <span className="font-semibold text-foreground">TZS {formatPrice(Math.round(areaAvg))}/mo</span>
+                <div className={`p-4 rounded-lg border text-sm flex items-center justify-between gap-3 ${isGoodDeal ? 'bg-blue-50 border-blue-200' : 'bg-muted/50'}`}>
+                  <div>
+                    <p className="text-muted-foreground">Average rent in this area</p>
+                    <p className="font-semibold text-foreground text-base">TZS {formatPrice(Math.round(areaAvg))}/month <span className="text-xs font-normal text-muted-foreground">· {property.property_type}s in {property.district}</span></p>
+                  </div>
+                  {isGoodDeal && (
+                    <div className="text-right">
+                      <p className="text-blue-700 font-bold flex items-center gap-1"><TrendingDown className="w-4 h-4" /> {dealPct}% cheaper</p>
+                      <p className="text-xs text-blue-600">than average</p>
+                    </div>
+                  )}
                 </div>
               )}
 
