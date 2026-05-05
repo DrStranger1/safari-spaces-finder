@@ -126,6 +126,8 @@ export type Database = {
           description: string
           district: string
           id: string
+          is_featured: boolean
+          is_promoted: boolean
           latitude: number | null
           longitude: number | null
           owner_id: string
@@ -146,6 +148,8 @@ export type Database = {
           description?: string
           district?: string
           id?: string
+          is_featured?: boolean
+          is_promoted?: boolean
           latitude?: number | null
           longitude?: number | null
           owner_id: string
@@ -166,6 +170,8 @@ export type Database = {
           description?: string
           district?: string
           id?: string
+          is_featured?: boolean
+          is_promoted?: boolean
           latitude?: number | null
           longitude?: number | null
           owner_id?: string
@@ -208,6 +214,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      reports: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          property_id: string
+          reason: string
+          reporter_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          property_id: string
+          reason: string
+          reporter_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          property_id?: string
+          reason?: string
+          reporter_id?: string | null
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
