@@ -41,6 +41,7 @@ export default function SearchPage() {
   const [district, setDistrict] = useState(searchParams.get('district') || 'All');
   const [type, setType] = useState(searchParams.get('type') || 'all');
   const [maxPrice, setMaxPrice] = useState(Number(searchParams.get('maxPrice')) || MAX_PRICE);
+  const [quickFilter, setQuickFilter] = useState<string | null>(searchParams.get('feature'));
 
   const fetchProperties = async () => {
     setLoading(true);
@@ -50,6 +51,7 @@ export default function SearchPage() {
     if (district && district !== 'All') q = q.eq('district', district);
     if (type && type !== 'all') q = q.eq('property_type', type as any);
     if (maxPrice && maxPrice < MAX_PRICE) q = q.lte('price', maxPrice);
+    if (quickFilter) q = q.or(`title.ilike.%${quickFilter}%,description.ilike.%${quickFilter}%`);
 
     q = q.order('is_promoted', { ascending: false }).order('is_featured', { ascending: false }).order('created_at', { ascending: false });
 
