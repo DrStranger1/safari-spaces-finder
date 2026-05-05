@@ -21,8 +21,10 @@ export default function PropertyCard({ property, imageUrl, isFavorite, onToggleF
   const formatPrice = (price: number) => new Intl.NumberFormat('en-TZ').format(price);
 
   const whatsappUrl = ownerPhone
-    ? `https://wa.me/${ownerPhone.replace(/[^0-9+]/g, '')}?text=${encodeURIComponent(`Hi, I'm interested in your property: ${property.title} (${property.district})`)}`
+    ? `https://wa.me/${ownerPhone.replace(/[^0-9+]/g, '')}?text=${encodeURIComponent(`Hi, I saw your property in ${property.district} on Pango (${property.title}). Is it still available?`)}`
     : null;
+
+  const reportCount = (property as any).report_count ?? 0;
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -91,9 +93,17 @@ export default function PropertyCard({ property, imageUrl, isFavorite, onToggleF
                 <span className="flex items-center gap-1"><Bath className="w-3.5 h-3.5" /> {property.bathrooms}</span>
               )}
             </div>
-            <p className="text-lg font-bold text-primary">
-              TZS {formatPrice(property.price)}<span className="text-sm font-normal text-muted-foreground">/mo</span>
-            </p>
+            <div className="flex items-end justify-between pt-1">
+              <p className="text-2xl font-extrabold text-primary leading-none">
+                TZS {formatPrice(property.price)}
+                <span className="text-xs font-normal text-muted-foreground ml-1">/mo</span>
+              </p>
+              {reportCount === 0 && (
+                <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3" /> No issues
+                </span>
+              )}
+            </div>
           </CardContent>
         </Link>
 
