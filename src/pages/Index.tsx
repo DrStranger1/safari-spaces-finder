@@ -254,6 +254,27 @@ export default function Index() {
         </div>
       </section>
 
+      {/* Testimonials */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="text-center mb-10">
+          <h2 className="font-display text-2xl md:text-3xl font-bold">Wateja wetu wanasema</h2>
+          <p className="text-muted-foreground mt-1">Real stories from renters in Dar</p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-6">
+          {[
+            { quote: 'Nilipata chumba ndani ya siku 2 — bila broker, bila stress!', name: 'Mwajuma', area: 'Kinondoni' },
+            { quote: 'WhatsApp contact made it so easy to reach the landlord directly.', name: 'David', area: 'Sinza' },
+            { quote: 'Verified badge gave me confidence. Nyumba nzuri kwa bei nzuri.', name: 'Neema', area: 'Mbezi' },
+          ].map(t => (
+            <div key={t.name} className="p-6 rounded-xl border bg-card space-y-3">
+              <Quote className="w-6 h-6 text-primary/40" />
+              <p className="text-foreground italic">"{t.quote}"</p>
+              <p className="text-sm text-muted-foreground">— {t.name}, {t.area}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* How It Works */}
       <section className="container mx-auto px-4 py-16">
         <h2 className="font-display text-2xl md:text-3xl font-bold text-center mb-12">How Pango Works</h2>
