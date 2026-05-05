@@ -122,14 +122,14 @@ export default function Index() {
                 speed={45}
               />
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto">
-              Verified rental properties — houses, apartments, rooms, and offices. Connect directly with landlords via WhatsApp.
+            <p className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto">
+              <span className="italic text-primary/80">Pata nyumba kwa urahisi</span> — Verified rental properties across Dar es Salaam. Connect with landlords directly via WhatsApp.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by area or property name..."
+                  placeholder="Try 'Sinza' or 'Mbezi room'..."
                   className="pl-10 h-12"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -141,11 +141,11 @@ export default function Index() {
               </Button>
             </div>
             <div className="flex flex-wrap justify-center gap-3 pt-2">
-              <Button variant="outline" size="lg" onClick={() => navigate('/search')}>
-                Browse Listings
+              <Button size="lg" className="shadow-lg" onClick={() => navigate('/search?type=room')}>
+                <DoorOpen className="w-4 h-4 mr-1" /> Find a Room Now
               </Button>
-              <Button size="lg" onClick={() => navigate('/search?type=room')}>
-                Find a Room Now <ArrowRight className="w-4 h-4 ml-1" />
+              <Button variant="outline" size="lg" onClick={() => navigate('/search')}>
+                Browse All Listings
               </Button>
             </div>
           </div>
