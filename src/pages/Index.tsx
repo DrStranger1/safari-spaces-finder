@@ -209,6 +209,7 @@ export default function Index() {
                   onToggleFavorite={user ? () => toggleFavorite(p.id) : undefined}
                   ownerPhone={ownerPhones[p.owner_id]}
                   isVerified={verifiedOwners.has(p.owner_id)}
+                  onReport={() => setReportId(p.id)}
                 />
               ))}
             </div>
