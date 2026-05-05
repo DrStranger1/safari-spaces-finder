@@ -242,7 +242,7 @@ export default function SearchPage() {
             </div>
             <div className="pt-4 border-t inline-block">
               <p className="text-sm text-muted-foreground mb-2">Are you a landlord?</p>
-              <Button size="sm" onClick={() => window.location.assign('/dashboard/new')}>Be the first to list in this area</Button>
+              <Button size="sm" onClick={() => window.location.assign('/dashboard/new-listing')}>Be the first to list in this area</Button>
             </div>
           </div>
         ) : (
