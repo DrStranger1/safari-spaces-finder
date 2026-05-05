@@ -17,6 +17,13 @@ type Property = Database['public']['Tables']['properties']['Row'];
 const districts = ['All', 'Kinondoni', 'Ilala', 'Temeke', 'Ubungo', 'Kigamboni', 'Mbezi', 'Sinza', 'Kijitonyama'];
 const types = ['all', 'house', 'apartment', 'room', 'office', 'commercial'] as const;
 const MAX_PRICE = 3000000;
+const PRICE_PRESETS = [
+  { label: 'Under 100k', max: 100000 },
+  { label: 'Under 250k', max: 250000 },
+  { label: 'Under 500k', max: 500000 },
+  { label: 'Under 1M', max: 1000000 },
+];
+const QUICK_AMENITIES = ['Self-contained', 'Near main road', 'Parking', 'Water tank', 'Security'];
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -34,6 +41,7 @@ export default function SearchPage() {
   const [district, setDistrict] = useState(searchParams.get('district') || 'All');
   const [type, setType] = useState(searchParams.get('type') || 'all');
   const [maxPrice, setMaxPrice] = useState(Number(searchParams.get('maxPrice')) || MAX_PRICE);
+  const [quickFilter, setQuickFilter] = useState<string | null>(searchParams.get('feature'));
 
   const fetchProperties = async () => {
     setLoading(true);
@@ -43,6 +51,7 @@ export default function SearchPage() {
     if (district && district !== 'All') q = q.eq('district', district);
     if (type && type !== 'all') q = q.eq('property_type', type as any);
     if (maxPrice && maxPrice < MAX_PRICE) q = q.lte('price', maxPrice);
+    if (quickFilter) q = q.or(`title.ilike.%${quickFilter}%,description.ilike.%${quickFilter}%`);
 
     q = q.order('is_promoted', { ascending: false }).order('is_featured', { ascending: false }).order('created_at', { ascending: false });
 
@@ -100,6 +109,7 @@ export default function SearchPage() {
     if (district !== 'All') params.set('district', district);
     if (type !== 'all') params.set('type', type);
     if (maxPrice < MAX_PRICE) params.set('maxPrice', String(maxPrice));
+    if (quickFilter) params.set('feature', quickFilter);
     setSearchParams(params);
   };
 
@@ -107,6 +117,21 @@ export default function SearchPage() {
     setDistrict(d);
     const params = new URLSearchParams(searchParams);
     if (d === 'All') params.delete('district'); else params.set('district', d);
+    setSearchParams(params);
+  };
+
+  const setPricePreset = (max: number) => {
+    setMaxPrice(max);
+    const params = new URLSearchParams(searchParams);
+    params.set('maxPrice', String(max));
+    setSearchParams(params);
+  };
+
+  const setFeature = (f: string) => {
+    const next = quickFilter === f ? null : f;
+    setQuickFilter(next);
+    const params = new URLSearchParams(searchParams);
+    if (next) params.set('feature', next); else params.delete('feature');
     setSearchParams(params);
   };
 
@@ -148,6 +173,33 @@ export default function SearchPage() {
           ))}
         </div>
 
+        {/* Price presets + feature chips */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {PRICE_PRESETS.map(p => (
+            <button
+              key={p.label}
+              onClick={() => setPricePreset(p.max)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                maxPrice === p.max ? 'bg-primary text-primary-foreground border-primary' : 'bg-card hover:border-primary'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+          <span className="w-px bg-border mx-1" />
+          {QUICK_AMENITIES.map(f => (
+            <button
+              key={f}
+              onClick={() => setFeature(f)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                quickFilter === f ? 'bg-primary text-primary-foreground border-primary' : 'bg-card hover:border-primary'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
         {showFilters && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 p-4 rounded-lg border bg-card animate-fade-in">
             <div>
@@ -180,12 +232,17 @@ export default function SearchPage() {
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : properties.length === 0 ? (
-          <div className="text-center py-20 bg-muted/30 rounded-xl">
-            <p className="text-foreground text-lg font-medium mb-2">No properties match your filters</p>
-            <p className="text-muted-foreground mb-6">Try Kinondoni or Sinza, or increase your budget.</p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              <Button variant="outline" onClick={() => { setDistrict('All'); setType('all'); setMaxPrice(MAX_PRICE); setQuery(''); setSearchParams({}); }}>Reset filters</Button>
+          <div className="text-center py-16 bg-muted/30 rounded-xl px-6">
+            <p className="text-foreground text-lg font-semibold mb-2">No properties match your filters</p>
+            <p className="text-muted-foreground mb-6">Try nearby areas like Kinondoni or Sinza, or increase your budget.</p>
+            <div className="flex flex-wrap gap-2 justify-center mb-4">
+              <Button variant="outline" onClick={() => { setDistrict('All'); setType('all'); setMaxPrice(MAX_PRICE); setQuery(''); setQuickFilter(null); setSearchParams({}); }}>Reset filters</Button>
               <Button onClick={() => setDistrictAndApply('Kinondoni')}>Try Kinondoni</Button>
+              <Button variant="outline" onClick={() => setDistrictAndApply('Sinza')}>Try Sinza</Button>
+            </div>
+            <div className="pt-4 border-t inline-block">
+              <p className="text-sm text-muted-foreground mb-2">Are you a landlord?</p>
+              <Button size="sm" onClick={() => window.location.assign('/dashboard/new-listing')}>Be the first to list in this area</Button>
             </div>
           </div>
         ) : (

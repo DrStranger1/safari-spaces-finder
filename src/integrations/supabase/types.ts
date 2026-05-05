@@ -133,6 +133,7 @@ export type Database = {
           owner_id: string
           price: number
           property_type: Database["public"]["Enums"]["property_type"]
+          report_count: number
           status: Database["public"]["Enums"]["property_status"]
           title: string
           updated_at: string
@@ -155,6 +156,7 @@ export type Database = {
           owner_id: string
           price?: number
           property_type?: Database["public"]["Enums"]["property_type"]
+          report_count?: number
           status?: Database["public"]["Enums"]["property_status"]
           title: string
           updated_at?: string
@@ -177,6 +179,7 @@ export type Database = {
           owner_id?: string
           price?: number
           property_type?: Database["public"]["Enums"]["property_type"]
+          report_count?: number
           status?: Database["public"]["Enums"]["property_status"]
           title?: string
           updated_at?: string

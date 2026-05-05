@@ -86,8 +86,12 @@ export default function PropertyDetail() {
   const formatPrice = (n: number) => new Intl.NumberFormat('en-TZ').format(n);
 
   const whatsappUrl = owner?.phone
-    ? `https://wa.me/${owner.phone.replace(/[^0-9+]/g, '')}?text=${encodeURIComponent(`Hi, I'm interested in your property: ${property?.title} (${property?.district})`)}`
+    ? `https://wa.me/${owner.phone.replace(/[^0-9+]/g, '')}?text=${encodeURIComponent(`Hi, I saw your property in ${property?.district} on Pango (${property?.title}). Is it still available?`)}`
     : null;
+
+  const dealPct = areaAvg && property ? Math.round((1 - Number(property.price) / areaAvg) * 100) : 0;
+  const isGoodDeal = dealPct >= 10;
+  const reportCount = (property as any)?.report_count ?? 0;
 
   if (loading) {
     return (
@@ -166,17 +170,23 @@ export default function PropertyDetail() {
                         </Tooltip>
                       </TooltipProvider>
                     )}
-                    {areaAvg !== null && property.price < areaAvg * 0.85 && (
-                      <Badge className="bg-blue-500 text-white border-0 flex items-center gap-1">
-                        <TrendingDown className="w-3 h-3" /> Good Deal
+                    {isGoodDeal && (
+                      <Badge className="bg-blue-600 text-white border-0 flex items-center gap-1 shadow">
+                        <TrendingDown className="w-3 h-3" /> Good Deal · {dealPct}% below {property.district} average
+                      </Badge>
+                    )}
+                    {reportCount === 0 && (
+                      <Badge variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3" /> No issues reported
                       </Badge>
                     )}
                   </div>
                   <p className="text-muted-foreground flex items-center gap-1 mt-1">
                     <MapPin className="w-4 h-4" /> {property.address}, {property.district}
                   </p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                    <Clock className="w-3 h-3" /> Updated {new Date(property.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  <p className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Updated {new Date(property.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                    {owner?.is_verified && <span className="text-emerald-600 flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Recently verified</span>}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -199,9 +209,17 @@ export default function PropertyDetail() {
               </div>
 
               {areaAvg !== null && (
-                <div className="p-3 rounded-lg bg-muted/50 border text-sm">
-                  <span className="text-muted-foreground">Average rent for {property.property_type}s in {property.district}: </span>
-                  <span className="font-semibold text-foreground">TZS {formatPrice(Math.round(areaAvg))}/mo</span>
+                <div className={`p-4 rounded-lg border text-sm flex items-center justify-between gap-3 ${isGoodDeal ? 'bg-blue-50 border-blue-200' : 'bg-muted/50'}`}>
+                  <div>
+                    <p className="text-muted-foreground">Average rent in this area</p>
+                    <p className="font-semibold text-foreground text-base">TZS {formatPrice(Math.round(areaAvg))}/month <span className="text-xs font-normal text-muted-foreground">· {property.property_type}s in {property.district}</span></p>
+                  </div>
+                  {isGoodDeal && (
+                    <div className="text-right">
+                      <p className="text-blue-700 font-bold flex items-center gap-1"><TrendingDown className="w-4 h-4" /> {dealPct}% cheaper</p>
+                      <p className="text-xs text-blue-600">than average</p>
+                    </div>
+                  )}
                 </div>
               )}
 

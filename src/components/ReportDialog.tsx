@@ -29,7 +29,7 @@ export default function ReportDialog({ propertyId, open, onOpenChange }: { prope
       toast({ title: 'Could not submit report', description: error.message, variant: 'destructive' });
       return;
     }
-    toast({ title: 'Report submitted', description: 'Asante! Our team will review this listing.' });
+    toast({ title: 'Thank you', description: 'Our team will review this listing within 24 hours.' });
     setReason(''); setDetails('');
     onOpenChange(false);
   };
