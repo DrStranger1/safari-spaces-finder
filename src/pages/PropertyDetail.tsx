@@ -147,29 +147,63 @@ export default function PropertyDetail() {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h1 className="font-display text-2xl md:text-3xl font-bold">{property.title}</h1>
+                    {property.is_promoted && (
+                      <Badge className="bg-amber-500 text-white border-0 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Promoted
+                      </Badge>
+                    )}
                     {owner?.is_verified && (
-                      <Badge className="bg-emerald-500 text-white border-0 flex items-center gap-1">
-                        <ShieldCheck className="w-3 h-3" /> Verified Listing
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge className="bg-emerald-500 text-white border-0 flex items-center gap-1 cursor-help">
+                              <ShieldCheck className="w-3 h-3" /> Verified by Pango
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            Verified landlords have confirmed phone numbers and submitted identity details.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    {areaAvg !== null && property.price < areaAvg * 0.85 && (
+                      <Badge className="bg-blue-500 text-white border-0 flex items-center gap-1">
+                        <TrendingDown className="w-3 h-3" /> Good Deal
                       </Badge>
                     )}
                   </div>
                   <p className="text-muted-foreground flex items-center gap-1 mt-1">
                     <MapPin className="w-4 h-4" /> {property.address}, {property.district}
                   </p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                    <Clock className="w-3 h-3" /> Updated {new Date(property.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
                 </div>
-                {user && (
-                  <Button variant="outline" size="icon" onClick={toggleFavorite}>
-                    <Heart className={`w-4 h-4 ${isFavorite ? 'fill-primary text-primary' : ''}`} />
+                <div className="flex gap-2">
+                  {user && (
+                    <Button variant="outline" size="icon" onClick={toggleFavorite}>
+                      <Heart className={`w-4 h-4 ${isFavorite ? 'fill-primary text-primary' : ''}`} />
+                    </Button>
+                  )}
+                  <Button variant="outline" size="icon" onClick={() => setReportOpen(true)} aria-label="Report listing">
+                    <Flag className="w-4 h-4" />
                   </Button>
-                )}
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-3">
-                <Badge variant="secondary" className="text-sm py-1 px-3">{property.property_type}</Badge>
+                <Badge variant="secondary" className="text-sm py-1 px-3 capitalize">{property.property_type}</Badge>
                 {property.bedrooms > 0 && <Badge variant="outline" className="text-sm py-1 px-3"><Bed className="w-3.5 h-3.5 mr-1" /> {property.bedrooms} Bed</Badge>}
                 {property.bathrooms > 0 && <Badge variant="outline" className="text-sm py-1 px-3"><Bath className="w-3.5 h-3.5 mr-1" /> {property.bathrooms} Bath</Badge>}
                 {property.area_sqm && <Badge variant="outline" className="text-sm py-1 px-3"><Maximize className="w-3.5 h-3.5 mr-1" /> {property.area_sqm} m²</Badge>}
               </div>
+
+              {areaAvg !== null && (
+                <div className="p-3 rounded-lg bg-muted/50 border text-sm">
+                  <span className="text-muted-foreground">Average rent for {property.property_type}s in {property.district}: </span>
+                  <span className="font-semibold text-foreground">TZS {formatPrice(Math.round(areaAvg))}/mo</span>
+                </div>
+              )}
 
               <div className="prose prose-sm max-w-none">
                 <h3 className="font-display text-lg font-semibold">Description</h3>
