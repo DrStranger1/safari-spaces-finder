@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, MapPin, Shield, Home, Building2, DoorOpen, Briefcase, ArrowRight, Loader2 } from 'lucide-react';
+import { Search, MapPin, Shield, Home, Building2, DoorOpen, Briefcase, ArrowRight, Loader2, Quote } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import TypewriterText from '@/components/TypewriterText';
 import PropertyCard from '@/components/PropertyCard';
+import ReportDialog from '@/components/ReportDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Database } from '@/integrations/supabase/types';
@@ -38,40 +39,34 @@ export default function Index() {
   const [verifiedOwners, setVerifiedOwners] = useState<Set<string>>(new Set());
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [reportId, setReportId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      // Featured: most favorited or just active with images, limit 6
-      const { data: allActive } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(12);
+      const [{ data: featuredData }, { data: recentData }] = await Promise.all([
+        supabase.from('properties').select('*').eq('status', 'active').eq('is_featured', true).order('is_promoted', { ascending: false }).order('created_at', { ascending: false }).limit(6),
+        supabase.from('properties').select('*').eq('status', 'active').order('created_at', { ascending: false }).limit(6),
+      ]);
 
-      if (allActive && allActive.length > 0) {
-        setRecent(allActive.slice(0, 6));
-        setFeatured(allActive.slice(0, 6));
+      let feat = featuredData || [];
+      // Fallback: if not enough featured, pad with recents
+      if (feat.length < 6 && recentData) {
+        const ids = new Set(feat.map(p => p.id));
+        feat = [...feat, ...recentData.filter(p => !ids.has(p.id))].slice(0, 6);
+      }
+      setFeatured(feat);
+      setRecent(recentData || []);
 
-        // Fetch images
-        const ids = allActive.map(p => p.id);
-        const { data: imgs } = await supabase
-          .from('property_images')
-          .select('property_id, image_url')
-          .in('property_id', ids)
-          .order('display_order', { ascending: true });
-
+      const all = [...feat, ...(recentData || [])];
+      if (all.length > 0) {
+        const ids = [...new Set(all.map(p => p.id))];
+        const { data: imgs } = await supabase.from('property_images').select('property_id, image_url').in('property_id', ids).order('display_order', { ascending: true });
         const imgMap: Record<string, string> = {};
         imgs?.forEach(img => { if (!imgMap[img.property_id]) imgMap[img.property_id] = img.image_url; });
         setImages(imgMap);
 
-        // Fetch owner phones + verification
-        const ownerIds = [...new Set(allActive.map(p => p.owner_id))];
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, phone, is_verified')
-          .in('user_id', ownerIds);
-
+        const ownerIds = [...new Set(all.map(p => p.owner_id))];
+        const { data: profiles } = await supabase.from('profiles').select('user_id, phone, is_verified').in('user_id', ownerIds);
         const phones: Record<string, string> = {};
         const verified = new Set<string>();
         profiles?.forEach(p => {
@@ -82,7 +77,6 @@ export default function Index() {
         setVerifiedOwners(verified);
       }
 
-      // Favorites
       if (user) {
         const { data: favs } = await supabase.from('favorites').select('property_id').eq('user_id', user.id);
         setFavorites(new Set(favs?.map(f => f.property_id)));
@@ -128,14 +122,14 @@ export default function Index() {
                 speed={45}
               />
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto">
-              Verified rental properties — houses, apartments, rooms, and offices. Connect directly with landlords via WhatsApp.
+            <p className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto">
+              <span className="italic text-primary/80">Pata nyumba kwa urahisi</span> — Verified rental properties across Dar es Salaam. Connect with landlords directly via WhatsApp.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by area or property name..."
+                  placeholder="Try 'Sinza' or 'Mbezi room'..."
                   className="pl-10 h-12"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -147,11 +141,11 @@ export default function Index() {
               </Button>
             </div>
             <div className="flex flex-wrap justify-center gap-3 pt-2">
-              <Button variant="outline" size="lg" onClick={() => navigate('/search')}>
-                Browse Listings
+              <Button size="lg" className="shadow-lg" onClick={() => navigate('/search?type=room')}>
+                <DoorOpen className="w-4 h-4 mr-1" /> Find a Room Now
               </Button>
-              <Button size="lg" onClick={() => navigate('/search?type=room')}>
-                Find a Room Now <ArrowRight className="w-4 h-4 ml-1" />
+              <Button variant="outline" size="lg" onClick={() => navigate('/search')}>
+                Browse All Listings
               </Button>
             </div>
           </div>
@@ -185,6 +179,7 @@ export default function Index() {
                 onToggleFavorite={user ? () => toggleFavorite(p.id) : undefined}
                 ownerPhone={ownerPhones[p.owner_id]}
                 isVerified={verifiedOwners.has(p.owner_id)}
+                onReport={() => setReportId(p.id)}
               />
             ))}
           </div>
@@ -214,6 +209,7 @@ export default function Index() {
                   onToggleFavorite={user ? () => toggleFavorite(p.id) : undefined}
                   ownerPhone={ownerPhones[p.owner_id]}
                   isVerified={verifiedOwners.has(p.owner_id)}
+                  onReport={() => setReportId(p.id)}
                 />
               ))}
             </div>
@@ -255,6 +251,27 @@ export default function Index() {
               </button>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="text-center mb-10">
+          <h2 className="font-display text-2xl md:text-3xl font-bold">Wateja wetu wanasema</h2>
+          <p className="text-muted-foreground mt-1">Real stories from renters in Dar</p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-6">
+          {[
+            { quote: 'Nilipata chumba ndani ya siku 2 — bila broker, bila stress!', name: 'Mwajuma', area: 'Kinondoni' },
+            { quote: 'WhatsApp contact made it so easy to reach the landlord directly.', name: 'David', area: 'Sinza' },
+            { quote: 'Verified badge gave me confidence. Nyumba nzuri kwa bei nzuri.', name: 'Neema', area: 'Mbezi' },
+          ].map(t => (
+            <div key={t.name} className="p-6 rounded-xl border bg-card space-y-3">
+              <Quote className="w-6 h-6 text-primary/40" />
+              <p className="text-foreground italic">"{t.quote}"</p>
+              <p className="text-sm text-muted-foreground">— {t.name}, {t.area}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -300,6 +317,8 @@ export default function Index() {
           <p className="text-sm text-muted-foreground">© 2026 Pango. Making renting simple in Dar es Salaam.</p>
         </div>
       </footer>
+
+      <ReportDialog propertyId={reportId} open={!!reportId} onOpenChange={(o) => !o && setReportId(null)} />
     </div>
   );
 }

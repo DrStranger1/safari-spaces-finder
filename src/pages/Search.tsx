@@ -2,18 +2,21 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import PropertyCard from '@/components/PropertyCard';
+import ReportDialog from '@/components/ReportDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search as SearchIcon, Loader2, SlidersHorizontal } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 
 type Property = Database['public']['Tables']['properties']['Row'];
 
-const districts = ['All', 'Kinondoni', 'Ilala', 'Temeke', 'Ubungo', 'Kigamboni'];
+const districts = ['All', 'Kinondoni', 'Ilala', 'Temeke', 'Ubungo', 'Kigamboni', 'Mbezi', 'Sinza', 'Kijitonyama'];
 const types = ['all', 'house', 'apartment', 'room', 'office', 'commercial'] as const;
+const MAX_PRICE = 3000000;
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -25,11 +28,12 @@ export default function SearchPage() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [reportId, setReportId] = useState<string | null>(null);
 
   const [query, setQuery] = useState(searchParams.get('q') || '');
   const [district, setDistrict] = useState(searchParams.get('district') || 'All');
   const [type, setType] = useState(searchParams.get('type') || 'all');
-  const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
+  const [maxPrice, setMaxPrice] = useState(Number(searchParams.get('maxPrice')) || MAX_PRICE);
 
   const fetchProperties = async () => {
     setLoading(true);
@@ -38,32 +42,22 @@ export default function SearchPage() {
     if (query) q = q.or(`title.ilike.%${query}%,address.ilike.%${query}%,district.ilike.%${query}%`);
     if (district && district !== 'All') q = q.eq('district', district);
     if (type && type !== 'all') q = q.eq('property_type', type as any);
-    if (maxPrice) q = q.lte('price', Number(maxPrice));
+    if (maxPrice && maxPrice < MAX_PRICE) q = q.lte('price', maxPrice);
 
-    q = q.order('created_at', { ascending: false });
+    q = q.order('is_promoted', { ascending: false }).order('is_featured', { ascending: false }).order('created_at', { ascending: false });
 
     const { data } = await q;
     setProperties(data || []);
 
     if (data && data.length > 0) {
       const ids = data.map(p => p.id);
-      const { data: imgs } = await supabase
-        .from('property_images')
-        .select('property_id, image_url')
-        .in('property_id', ids)
-        .order('display_order', { ascending: true });
-
+      const { data: imgs } = await supabase.from('property_images').select('property_id, image_url').in('property_id', ids).order('display_order', { ascending: true });
       const imgMap: Record<string, string> = {};
       imgs?.forEach(img => { if (!imgMap[img.property_id]) imgMap[img.property_id] = img.image_url; });
       setImages(imgMap);
 
-      // Fetch owner info
       const ownerIds = [...new Set(data.map(p => p.owner_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, phone, is_verified')
-        .in('user_id', ownerIds);
-
+      const { data: profiles } = await supabase.from('profiles').select('user_id, phone, is_verified').in('user_id', ownerIds);
       const phones: Record<string, string> = {};
       const verified = new Set<string>();
       profiles?.forEach(p => {
@@ -97,6 +91,7 @@ export default function SearchPage() {
   useEffect(() => {
     fetchProperties();
     fetchFavorites();
+     
   }, [searchParams, user]);
 
   const applyFilters = () => {
@@ -104,15 +99,24 @@ export default function SearchPage() {
     if (query) params.set('q', query);
     if (district !== 'All') params.set('district', district);
     if (type !== 'all') params.set('type', type);
-    if (maxPrice) params.set('maxPrice', maxPrice);
+    if (maxPrice < MAX_PRICE) params.set('maxPrice', String(maxPrice));
     setSearchParams(params);
   };
+
+  const setDistrictAndApply = (d: string) => {
+    setDistrict(d);
+    const params = new URLSearchParams(searchParams);
+    if (d === 'All') params.delete('district'); else params.set('district', d);
+    setSearchParams(params);
+  };
+
+  const formatPrice = (n: number) => new Intl.NumberFormat('en-TZ').format(n);
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto px-4 py-6">
-        <div className="flex gap-3 mb-6">
+        <div className="flex gap-3 mb-4">
           <div className="relative flex-1">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -129,8 +133,23 @@ export default function SearchPage() {
           <Button onClick={applyFilters}>Search</Button>
         </div>
 
+        {/* Quick location chips */}
+        <div className="flex gap-2 overflow-x-auto pb-3 mb-2">
+          {districts.map(d => (
+            <button
+              key={d}
+              onClick={() => setDistrictAndApply(d)}
+              className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                district === d ? 'bg-primary text-primary-foreground border-primary' : 'bg-card hover:border-primary'
+              }`}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+
         {showFilters && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 p-4 rounded-lg border bg-card animate-fade-in">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 p-4 rounded-lg border bg-card animate-fade-in">
             <div>
               <label className="text-sm font-medium mb-1 block">District</label>
               <Select value={district} onValueChange={setDistrict}>
@@ -150,8 +169,8 @@ export default function SearchPage() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Max Price (TZS)</label>
-              <Input type="number" placeholder="e.g. 500000" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
+              <label className="text-sm font-medium mb-2 block">Max Price: TZS {formatPrice(maxPrice)}</label>
+              <Slider value={[maxPrice]} onValueChange={(v) => setMaxPrice(v[0])} min={50000} max={MAX_PRICE} step={50000} />
             </div>
           </div>
         )}
@@ -161,8 +180,13 @@ export default function SearchPage() {
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : properties.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-muted-foreground text-lg">No properties found. Try adjusting your filters.</p>
+          <div className="text-center py-20 bg-muted/30 rounded-xl">
+            <p className="text-foreground text-lg font-medium mb-2">No properties match your filters</p>
+            <p className="text-muted-foreground mb-6">Try Kinondoni or Sinza, or increase your budget.</p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              <Button variant="outline" onClick={() => { setDistrict('All'); setType('all'); setMaxPrice(MAX_PRICE); setQuery(''); setSearchParams({}); }}>Reset filters</Button>
+              <Button onClick={() => setDistrictAndApply('Kinondoni')}>Try Kinondoni</Button>
+            </div>
           </div>
         ) : (
           <>
@@ -177,12 +201,15 @@ export default function SearchPage() {
                   onToggleFavorite={user ? () => toggleFavorite(p.id) : undefined}
                   ownerPhone={ownerPhones[p.owner_id]}
                   isVerified={verifiedOwners.has(p.owner_id)}
+                  onReport={() => setReportId(p.id)}
                 />
               ))}
             </div>
           </>
         )}
       </div>
+
+      <ReportDialog propertyId={reportId} open={!!reportId} onOpenChange={(o) => !o && setReportId(null)} />
     </div>
   );
 }

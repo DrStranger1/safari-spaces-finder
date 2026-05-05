@@ -5,7 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Bed, Bath, Maximize, Phone, Mail, ArrowLeft, Heart, Hospital, Bus, ShoppingCart, Route, Loader2, ShieldCheck, MessageCircle } from 'lucide-react';
+import { MapPin, Bed, Bath, Maximize, Phone, Mail, ArrowLeft, Heart, Hospital, Bus, ShoppingCart, Route, Loader2, ShieldCheck, MessageCircle, Sparkles, TrendingDown, Flag, Clock } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import ReportDialog from '@/components/ReportDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { Database } from '@/integrations/supabase/types';
 
@@ -29,6 +31,8 @@ export default function PropertyDetail() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
+  const [areaAvg, setAreaAvg] = useState<number | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -45,6 +49,18 @@ export default function PropertyDetail() {
       if (prop) {
         const { data: ownerProfile } = await supabase.from('profiles').select('full_name, phone, is_verified').eq('user_id', prop.owner_id).single();
         setOwner(ownerProfile);
+
+        // Area average for same district + type
+        const { data: comps } = await supabase
+          .from('properties')
+          .select('price')
+          .eq('status', 'active')
+          .eq('district', prop.district)
+          .eq('property_type', prop.property_type);
+        if (comps && comps.length > 1) {
+          const avg = comps.reduce((s, c) => s + Number(c.price), 0) / comps.length;
+          setAreaAvg(avg);
+        }
       }
 
       if (user) {
@@ -131,29 +147,63 @@ export default function PropertyDetail() {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h1 className="font-display text-2xl md:text-3xl font-bold">{property.title}</h1>
+                    {property.is_promoted && (
+                      <Badge className="bg-amber-500 text-white border-0 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Promoted
+                      </Badge>
+                    )}
                     {owner?.is_verified && (
-                      <Badge className="bg-emerald-500 text-white border-0 flex items-center gap-1">
-                        <ShieldCheck className="w-3 h-3" /> Verified Listing
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge className="bg-emerald-500 text-white border-0 flex items-center gap-1 cursor-help">
+                              <ShieldCheck className="w-3 h-3" /> Verified by Pango
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            Verified landlords have confirmed phone numbers and submitted identity details.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    {areaAvg !== null && property.price < areaAvg * 0.85 && (
+                      <Badge className="bg-blue-500 text-white border-0 flex items-center gap-1">
+                        <TrendingDown className="w-3 h-3" /> Good Deal
                       </Badge>
                     )}
                   </div>
                   <p className="text-muted-foreground flex items-center gap-1 mt-1">
                     <MapPin className="w-4 h-4" /> {property.address}, {property.district}
                   </p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                    <Clock className="w-3 h-3" /> Updated {new Date(property.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
                 </div>
-                {user && (
-                  <Button variant="outline" size="icon" onClick={toggleFavorite}>
-                    <Heart className={`w-4 h-4 ${isFavorite ? 'fill-primary text-primary' : ''}`} />
+                <div className="flex gap-2">
+                  {user && (
+                    <Button variant="outline" size="icon" onClick={toggleFavorite}>
+                      <Heart className={`w-4 h-4 ${isFavorite ? 'fill-primary text-primary' : ''}`} />
+                    </Button>
+                  )}
+                  <Button variant="outline" size="icon" onClick={() => setReportOpen(true)} aria-label="Report listing">
+                    <Flag className="w-4 h-4" />
                   </Button>
-                )}
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-3">
-                <Badge variant="secondary" className="text-sm py-1 px-3">{property.property_type}</Badge>
+                <Badge variant="secondary" className="text-sm py-1 px-3 capitalize">{property.property_type}</Badge>
                 {property.bedrooms > 0 && <Badge variant="outline" className="text-sm py-1 px-3"><Bed className="w-3.5 h-3.5 mr-1" /> {property.bedrooms} Bed</Badge>}
                 {property.bathrooms > 0 && <Badge variant="outline" className="text-sm py-1 px-3"><Bath className="w-3.5 h-3.5 mr-1" /> {property.bathrooms} Bath</Badge>}
                 {property.area_sqm && <Badge variant="outline" className="text-sm py-1 px-3"><Maximize className="w-3.5 h-3.5 mr-1" /> {property.area_sqm} m²</Badge>}
               </div>
+
+              {areaAvg !== null && (
+                <div className="p-3 rounded-lg bg-muted/50 border text-sm">
+                  <span className="text-muted-foreground">Average rent for {property.property_type}s in {property.district}: </span>
+                  <span className="font-semibold text-foreground">TZS {formatPrice(Math.round(areaAvg))}/mo</span>
+                </div>
+              )}
 
               <div className="prose prose-sm max-w-none">
                 <h3 className="font-display text-lg font-semibold">Description</h3>
@@ -219,13 +269,27 @@ export default function PropertyDetail() {
                 </p>
                 {owner && (
                   <div className="space-y-3 pt-2 border-t">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">Listed by {owner.full_name}</p>
-                      {owner.is_verified && (
-                        <Badge variant="outline" className="text-emerald-600 border-emerald-300 text-xs">
-                          <ShieldCheck className="w-3 h-3 mr-1" /> Verified
-                        </Badge>
-                      )}
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold shrink-0">
+                        {owner.full_name.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{owner.full_name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {owner.is_verified ? (
+                            <Badge variant="outline" className="text-emerald-600 border-emerald-300 text-xs">
+                              <ShieldCheck className="w-3 h-3 mr-1" /> Verified landlord
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Unverified</span>
+                          )}
+                        </div>
+                        {owner.phone && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {owner.phone.slice(0, 5)}••••{owner.phone.slice(-2)} · Sign in to view full
+                          </p>
+                        )}
+                      </div>
                     </div>
                     {whatsappUrl && (
                       <a
@@ -237,7 +301,7 @@ export default function PropertyDetail() {
                         <MessageCircle className="w-5 h-5" /> WhatsApp Landlord
                       </a>
                     )}
-                    {owner.phone && (
+                    {owner.phone && user && (
                       <Button className="w-full" asChild>
                         <a href={`tel:${owner.phone}`}><Phone className="w-4 h-4 mr-2" /> Call {owner.phone}</a>
                       </Button>
@@ -252,6 +316,8 @@ export default function PropertyDetail() {
           </div>
         </div>
       </div>
+
+      <ReportDialog propertyId={property.id} open={reportOpen} onOpenChange={setReportOpen} />
     </div>
   );
 }
