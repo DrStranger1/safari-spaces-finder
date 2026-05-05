@@ -173,6 +173,33 @@ export default function SearchPage() {
           ))}
         </div>
 
+        {/* Price presets + feature chips */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {PRICE_PRESETS.map(p => (
+            <button
+              key={p.label}
+              onClick={() => setPricePreset(p.max)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                maxPrice === p.max ? 'bg-primary text-primary-foreground border-primary' : 'bg-card hover:border-primary'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+          <span className="w-px bg-border mx-1" />
+          {QUICK_AMENITIES.map(f => (
+            <button
+              key={f}
+              onClick={() => setFeature(f)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                quickFilter === f ? 'bg-primary text-primary-foreground border-primary' : 'bg-card hover:border-primary'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
         {showFilters && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 p-4 rounded-lg border bg-card animate-fade-in">
             <div>
