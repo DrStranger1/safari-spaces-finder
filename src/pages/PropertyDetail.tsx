@@ -269,13 +269,27 @@ export default function PropertyDetail() {
                 </p>
                 {owner && (
                   <div className="space-y-3 pt-2 border-t">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">Listed by {owner.full_name}</p>
-                      {owner.is_verified && (
-                        <Badge variant="outline" className="text-emerald-600 border-emerald-300 text-xs">
-                          <ShieldCheck className="w-3 h-3 mr-1" /> Verified
-                        </Badge>
-                      )}
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold shrink-0">
+                        {owner.full_name.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{owner.full_name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {owner.is_verified ? (
+                            <Badge variant="outline" className="text-emerald-600 border-emerald-300 text-xs">
+                              <ShieldCheck className="w-3 h-3 mr-1" /> Verified landlord
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Unverified</span>
+                          )}
+                        </div>
+                        {owner.phone && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {owner.phone.slice(0, 5)}••••{owner.phone.slice(-2)} · Sign in to view full
+                          </p>
+                        )}
+                      </div>
                     </div>
                     {whatsappUrl && (
                       <a
@@ -287,7 +301,7 @@ export default function PropertyDetail() {
                         <MessageCircle className="w-5 h-5" /> WhatsApp Landlord
                       </a>
                     )}
-                    {owner.phone && (
+                    {owner.phone && user && (
                       <Button className="w-full" asChild>
                         <a href={`tel:${owner.phone}`}><Phone className="w-4 h-4 mr-2" /> Call {owner.phone}</a>
                       </Button>
@@ -302,6 +316,8 @@ export default function PropertyDetail() {
           </div>
         </div>
       </div>
+
+      <ReportDialog propertyId={property.id} open={reportOpen} onOpenChange={setReportOpen} />
     </div>
   );
 }
