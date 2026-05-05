@@ -232,12 +232,17 @@ export default function SearchPage() {
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : properties.length === 0 ? (
-          <div className="text-center py-20 bg-muted/30 rounded-xl">
-            <p className="text-foreground text-lg font-medium mb-2">No properties match your filters</p>
-            <p className="text-muted-foreground mb-6">Try Kinondoni or Sinza, or increase your budget.</p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              <Button variant="outline" onClick={() => { setDistrict('All'); setType('all'); setMaxPrice(MAX_PRICE); setQuery(''); setSearchParams({}); }}>Reset filters</Button>
+          <div className="text-center py-16 bg-muted/30 rounded-xl px-6">
+            <p className="text-foreground text-lg font-semibold mb-2">No properties match your filters</p>
+            <p className="text-muted-foreground mb-6">Try nearby areas like Kinondoni or Sinza, or increase your budget.</p>
+            <div className="flex flex-wrap gap-2 justify-center mb-4">
+              <Button variant="outline" onClick={() => { setDistrict('All'); setType('all'); setMaxPrice(MAX_PRICE); setQuery(''); setQuickFilter(null); setSearchParams({}); }}>Reset filters</Button>
               <Button onClick={() => setDistrictAndApply('Kinondoni')}>Try Kinondoni</Button>
+              <Button variant="outline" onClick={() => setDistrictAndApply('Sinza')}>Try Sinza</Button>
+            </div>
+            <div className="pt-4 border-t inline-block">
+              <p className="text-sm text-muted-foreground mb-2">Are you a landlord?</p>
+              <Button size="sm" onClick={() => window.location.assign('/dashboard/new')}>Be the first to list in this area</Button>
             </div>
           </div>
         ) : (
