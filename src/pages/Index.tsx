@@ -317,6 +317,8 @@ export default function Index() {
           <p className="text-sm text-muted-foreground">© 2026 Pango. Making renting simple in Dar es Salaam.</p>
         </div>
       </footer>
+
+      <ReportDialog propertyId={reportId} open={!!reportId} onOpenChange={(o) => !o && setReportId(null)} />
     </div>
   );
 }
