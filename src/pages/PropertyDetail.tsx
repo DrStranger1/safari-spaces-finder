@@ -5,7 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Bed, Bath, Maximize, Phone, Mail, ArrowLeft, Heart, Hospital, Bus, ShoppingCart, Route, Loader2, ShieldCheck, MessageCircle } from 'lucide-react';
+import { MapPin, Bed, Bath, Maximize, Phone, Mail, ArrowLeft, Heart, Hospital, Bus, ShoppingCart, Route, Loader2, ShieldCheck, MessageCircle, Sparkles, TrendingDown, Flag, Clock } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import ReportDialog from '@/components/ReportDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { Database } from '@/integrations/supabase/types';
 
