@@ -39,6 +39,7 @@ export default function Index() {
   const [verifiedOwners, setVerifiedOwners] = useState<Set<string>>(new Set());
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [reportId, setReportId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
