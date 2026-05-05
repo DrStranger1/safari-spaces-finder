@@ -17,6 +17,13 @@ type Property = Database['public']['Tables']['properties']['Row'];
 const districts = ['All', 'Kinondoni', 'Ilala', 'Temeke', 'Ubungo', 'Kigamboni', 'Mbezi', 'Sinza', 'Kijitonyama'];
 const types = ['all', 'house', 'apartment', 'room', 'office', 'commercial'] as const;
 const MAX_PRICE = 3000000;
+const PRICE_PRESETS = [
+  { label: 'Under 100k', max: 100000 },
+  { label: 'Under 250k', max: 250000 },
+  { label: 'Under 500k', max: 500000 },
+  { label: 'Under 1M', max: 1000000 },
+];
+const QUICK_AMENITIES = ['Self-contained', 'Near main road', 'Parking', 'Water tank', 'Security'];
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
