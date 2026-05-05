@@ -43,37 +43,30 @@ export default function Index() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Featured: most favorited or just active with images, limit 6
-      const { data: allActive } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(12);
+      const [{ data: featuredData }, { data: recentData }] = await Promise.all([
+        supabase.from('properties').select('*').eq('status', 'active').eq('is_featured', true).order('is_promoted', { ascending: false }).order('created_at', { ascending: false }).limit(6),
+        supabase.from('properties').select('*').eq('status', 'active').order('created_at', { ascending: false }).limit(6),
+      ]);
 
-      if (allActive && allActive.length > 0) {
-        setRecent(allActive.slice(0, 6));
-        setFeatured(allActive.slice(0, 6));
+      let feat = featuredData || [];
+      // Fallback: if not enough featured, pad with recents
+      if (feat.length < 6 && recentData) {
+        const ids = new Set(feat.map(p => p.id));
+        feat = [...feat, ...recentData.filter(p => !ids.has(p.id))].slice(0, 6);
+      }
+      setFeatured(feat);
+      setRecent(recentData || []);
 
-        // Fetch images
-        const ids = allActive.map(p => p.id);
-        const { data: imgs } = await supabase
-          .from('property_images')
-          .select('property_id, image_url')
-          .in('property_id', ids)
-          .order('display_order', { ascending: true });
-
+      const all = [...feat, ...(recentData || [])];
+      if (all.length > 0) {
+        const ids = [...new Set(all.map(p => p.id))];
+        const { data: imgs } = await supabase.from('property_images').select('property_id, image_url').in('property_id', ids).order('display_order', { ascending: true });
         const imgMap: Record<string, string> = {};
         imgs?.forEach(img => { if (!imgMap[img.property_id]) imgMap[img.property_id] = img.image_url; });
         setImages(imgMap);
 
-        // Fetch owner phones + verification
-        const ownerIds = [...new Set(allActive.map(p => p.owner_id))];
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, phone, is_verified')
-          .in('user_id', ownerIds);
-
+        const ownerIds = [...new Set(all.map(p => p.owner_id))];
+        const { data: profiles } = await supabase.from('profiles').select('user_id, phone, is_verified').in('user_id', ownerIds);
         const phones: Record<string, string> = {};
         const verified = new Set<string>();
         profiles?.forEach(p => {
@@ -84,7 +77,6 @@ export default function Index() {
         setVerifiedOwners(verified);
       }
 
-      // Favorites
       if (user) {
         const { data: favs } = await supabase.from('favorites').select('property_id').eq('user_id', user.id);
         setFavorites(new Set(favs?.map(f => f.property_id)));
