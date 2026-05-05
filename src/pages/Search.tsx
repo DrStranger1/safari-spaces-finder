@@ -109,6 +109,7 @@ export default function SearchPage() {
     if (district !== 'All') params.set('district', district);
     if (type !== 'all') params.set('type', type);
     if (maxPrice < MAX_PRICE) params.set('maxPrice', String(maxPrice));
+    if (quickFilter) params.set('feature', quickFilter);
     setSearchParams(params);
   };
 
@@ -116,6 +117,21 @@ export default function SearchPage() {
     setDistrict(d);
     const params = new URLSearchParams(searchParams);
     if (d === 'All') params.delete('district'); else params.set('district', d);
+    setSearchParams(params);
+  };
+
+  const setPricePreset = (max: number) => {
+    setMaxPrice(max);
+    const params = new URLSearchParams(searchParams);
+    params.set('maxPrice', String(max));
+    setSearchParams(params);
+  };
+
+  const setFeature = (f: string) => {
+    const next = quickFilter === f ? null : f;
+    setQuickFilter(next);
+    const params = new URLSearchParams(searchParams);
+    if (next) params.set('feature', next); else params.delete('feature');
     setSearchParams(params);
   };
 
