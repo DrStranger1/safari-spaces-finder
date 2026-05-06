@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import NewListing from "./pages/NewListing";
 import Favorites from "./pages/Favorites";
 import NotFound from "./pages/NotFound";
+import MobileBottomNav from "./components/MobileBottomNav";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,8 @@ const App = () => (
             <Route path="/favorites" element={<Favorites />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <MobileBottomNav />
+          <div className="md:hidden h-16" aria-hidden />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
