@@ -40,7 +40,7 @@ const budgets = [
   { label: 'Under 250k', value: '250000' },
   { label: 'Under 500k', value: '500000' },
   { label: 'Under 1M', value: '1000000' },
-  { label: 'Any budget', value: '' },
+  { label: 'Any budget', value: 'any' },
 ];
 
 const trustPoints = [
@@ -130,7 +130,7 @@ export default function Index() {
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (searchLocation) params.set('q', searchLocation);
-    if (searchBudget) params.set('maxPrice', searchBudget);
+    if (searchBudget && searchBudget !== 'any') params.set('maxPrice', searchBudget);
     if (searchType) params.set('type', searchType);
     navigate(`/search${params.toString() ? `?${params.toString()}` : ''}`);
   };
@@ -191,7 +191,7 @@ export default function Index() {
                       <SelectValue placeholder="Budget" />
                     </SelectTrigger>
                     <SelectContent>
-                      {budgets.map(b => <SelectItem key={b.label} value={b.value || 'any'} onSelect={() => setSearchBudget(b.value)}>{b.label}</SelectItem>)}
+                      {budgets.map(b => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Select value={searchType} onValueChange={setSearchType}>
