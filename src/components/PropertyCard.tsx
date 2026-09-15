@@ -1,9 +1,15 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { MapPin, Bed, Bath, Heart, ShieldCheck, MessageCircle, Sparkles, Flag } from 'lucide-react';
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  MapPin, Bed, Bath, Heart, ShieldCheck, MessageCircle, Sparkles, Flag,
+} from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
+import { formatTzs } from '@/lib/format';
+import AvailabilityBadge from '@/features/trust/AvailabilityBadge';
 
 type Property = Database['public']['Tables']['properties']['Row'];
 
@@ -11,34 +17,36 @@ interface PropertyCardProps {
   property: Property;
   imageUrl?: string;
   isFavorite?: boolean;
-  onToggleFavorite?: () => void;
-  ownerPhone?: string;
   isVerified?: boolean;
+  onToggleFavorite?: () => void;
+  onContact?: () => void;
   onReport?: () => void;
 }
 
-export default function PropertyCard({ property, imageUrl, isFavorite, onToggleFavorite, ownerPhone, isVerified, onReport }: PropertyCardProps) {
-  const formatPrice = (price: number) => new Intl.NumberFormat('en-TZ').format(price);
-
-  const whatsappUrl = ownerPhone
-    ? `https://wa.me/${ownerPhone.replace(/[^0-9+]/g, '')}?text=${encodeURIComponent(`Hi, I saw your property in ${property.district} on Pango (${property.title}). Is it still available?`)}`
-    : null;
-
-  const reportCount = (property as any).report_count ?? 0;
+export default function PropertyCard({
+  property, imageUrl, isFavorite, isVerified,
+  onToggleFavorite, onContact, onReport,
+}: PropertyCardProps) {
+  const reportCount = property.report_count ?? 0;
 
   return (
     <TooltipProvider delayDuration={150}>
       <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 border-border/50">
         <div className="relative aspect-[4/3] overflow-hidden bg-muted">
           {imageUrl ? (
-            <img src={imageUrl} alt={property.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+            <img
+              src={imageUrl}
+              alt={property.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground">
               <MapPin className="w-8 h-8" />
             </div>
           )}
 
-          {/* Top badges */}
+          {/* Top-left badges */}
           <div className="absolute top-3 left-3 flex gap-2">
             {property.is_promoted && (
               <Badge className="bg-amber-500 text-white border-0 flex items-center gap-1 shadow">
@@ -76,6 +84,7 @@ export default function PropertyCard({ property, imageUrl, isFavorite, onToggleF
             {property.is_featured && (
               <Badge className="bg-rose-500 text-white border-0">🔥 Featured</Badge>
             )}
+            <AvailabilityBadge status={property.availability_status} />
           </div>
         </div>
 
@@ -95,7 +104,7 @@ export default function PropertyCard({ property, imageUrl, isFavorite, onToggleF
             </div>
             <div className="flex items-end justify-between pt-1">
               <p className="text-2xl font-extrabold text-primary leading-none">
-                TZS {formatPrice(property.price)}
+                TZS {formatTzs(property.price)}
                 <span className="text-xs font-normal text-muted-foreground ml-1">/mo</span>
               </p>
               {reportCount === 0 && (
@@ -108,16 +117,13 @@ export default function PropertyCard({ property, imageUrl, isFavorite, onToggleF
         </Link>
 
         <div className="px-4 pb-4 pt-0 flex items-center gap-2">
-          {whatsappUrl ? (
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#25D366] hover:bg-[#20BD5A] text-white text-sm font-medium transition-colors"
+          {onContact ? (
+            <button
+              onClick={(e) => { e.preventDefault(); onContact(); }}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium transition-colors"
             >
-              <MessageCircle className="w-4 h-4" /> WhatsApp
-            </a>
+              <MessageCircle className="w-4 h-4" /> Message landlord
+            </button>
           ) : (
             <div className="flex-1" />
           )}

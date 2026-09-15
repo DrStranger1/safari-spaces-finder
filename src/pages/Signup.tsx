@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card, CardContent, CardHeader, CardTitle, CardDescription,
+} from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { Home, Loader2, User, Building, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -11,15 +13,21 @@ import { useToast } from '@/hooks/use-toast';
 type Role = 'renter' | 'landlord';
 
 export default function Signup() {
+  const [searchParams] = useSearchParams();
+  const initialRole: Role = searchParams.get('role') === 'landlord' ? 'landlord' : 'renter';
+  const redirect = searchParams.get('redirect');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<Role>('renter');
+  const [role, setRole] = useState<Role>(initialRole);
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const loginHref = redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,10 +36,15 @@ export default function Signup() {
     setLoading(false);
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Account created!', description: role === 'landlord' ? 'Your account is pending verification by an admin.' : 'Please check your email to verify your account.' });
-      navigate('/login');
+      return;
     }
+    toast({
+      title: 'Account created!',
+      description: role === 'landlord'
+        ? 'Your account is pending verification by an admin.'
+        : 'Please check your email to verify your account.',
+    });
+    navigate(loginHref);
   };
 
   return (
@@ -102,7 +115,8 @@ export default function Signup() {
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            Already have an account? <Link to="/login" className="text-primary hover:underline font-medium">Sign In</Link>
+            Already have an account?{' '}
+            <Link to={loginHref} className="text-primary hover:underline font-medium">Sign In</Link>
           </p>
         </CardContent>
       </Card>

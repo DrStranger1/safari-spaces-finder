@@ -5,10 +5,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Bed, Bath, Maximize, Phone, Mail, ArrowLeft, Heart, Hospital, Bus, ShoppingCart, Route, Loader2, ShieldCheck, MessageCircle, Sparkles, TrendingDown, Flag, Clock } from 'lucide-react';
+import { MapPin, Bed, Bath, Maximize, ArrowLeft, Heart, Hospital, Bus, ShoppingCart, Route, Loader2, ShieldCheck, MessageCircle, Sparkles, TrendingDown, Flag, Clock, Lock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import ReportDialog from '@/components/ReportDialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuthPrompt } from '@/features/auth/useAuthPrompt';
+import InquiryDialog from '@/features/inquiries/InquiryDialog';
+import AvailabilityBadge from '@/features/trust/AvailabilityBadge';
+import { usePropertyViewLogger } from '@/features/views/usePropertyViewLogger';
 import { Database } from '@/integrations/supabase/types';
 
 type Property = Database['public']['Tables']['properties']['Row'];
@@ -24,6 +28,7 @@ const serviceIcons: Record<string, any> = {
 export default function PropertyDetail() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { openAuthPrompt } = useAuthPrompt();
   const [property, setProperty] = useState<Property | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [services, setServices] = useState<NearbyService[]>([]);
@@ -33,6 +38,9 @@ export default function PropertyDetail() {
   const [activeImage, setActiveImage] = useState(0);
   const [areaAvg, setAreaAvg] = useState<number | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
+  const [inquiryOpen, setInquiryOpen] = useState(false);
+
+  usePropertyViewLogger(id);
 
   useEffect(() => {
     if (!id) return;
@@ -74,7 +82,11 @@ export default function PropertyDetail() {
   }, [id, user]);
 
   const toggleFavorite = async () => {
-    if (!user || !id) return;
+    if (!id) return;
+    if (!user) {
+      openAuthPrompt('save');
+      return;
+    }
     if (isFavorite) {
       await supabase.from('favorites').delete().eq('user_id', user.id).eq('property_id', id);
     } else {
@@ -83,11 +95,23 @@ export default function PropertyDetail() {
     setIsFavorite(!isFavorite);
   };
 
-  const formatPrice = (n: number) => new Intl.NumberFormat('en-TZ').format(n);
+  const handleReportClick = () => {
+    if (!user) {
+      openAuthPrompt('report');
+      return;
+    }
+    setReportOpen(true);
+  };
 
-  const whatsappUrl = owner?.phone
-    ? `https://wa.me/${owner.phone.replace(/[^0-9+]/g, '')}?text=${encodeURIComponent(`Hi, I saw your property in ${property?.district} on Pango (${property?.title}). Is it still available?`)}`
-    : null;
+  const handleContactClick = () => {
+    if (!user) {
+      openAuthPrompt('inquire');
+      return;
+    }
+    setInquiryOpen(true);
+  };
+
+  const formatPrice = (n: number) => new Intl.NumberFormat('en-TZ').format(n);
 
   const dealPct = areaAvg && property ? Math.round((1 - Number(property.price) / areaAvg) * 100) : 0;
   const isGoodDeal = dealPct >= 10;
@@ -175,6 +199,8 @@ export default function PropertyDetail() {
                         <TrendingDown className="w-3 h-3" /> Good Deal · {dealPct}% below {property.district} average
                       </Badge>
                     )}
+                    <AvailabilityBadge status={property.availability_status} />
+
                     {reportCount === 0 && (
                       <Badge variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 flex items-center gap-1">
                         <ShieldCheck className="w-3 h-3" /> No issues reported
@@ -190,12 +216,10 @@ export default function PropertyDetail() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  {user && (
-                    <Button variant="outline" size="icon" onClick={toggleFavorite}>
-                      <Heart className={`w-4 h-4 ${isFavorite ? 'fill-primary text-primary' : ''}`} />
-                    </Button>
-                  )}
-                  <Button variant="outline" size="icon" onClick={() => setReportOpen(true)} aria-label="Report listing">
+                  <Button variant="outline" size="icon" onClick={toggleFavorite} aria-label="Save listing">
+                    <Heart className={`w-4 h-4 ${isFavorite ? 'fill-primary text-primary' : ''}`} />
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={handleReportClick} aria-label="Report listing">
                     <Flag className="w-4 h-4" />
                   </Button>
                 </div>
@@ -302,31 +326,36 @@ export default function PropertyDetail() {
                             <span className="text-xs text-muted-foreground">Unverified</span>
                           )}
                         </div>
-                        {owner.phone && (
+                        {property.availability_status !== 'occupied' && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            {owner.phone.slice(0, 5)}••••{owner.phone.slice(-2)} · Sign in to view full
+                            Send an inquiry to reveal phone & WhatsApp.
                           </p>
                         )}
                       </div>
                     </div>
-                    {whatsappUrl && (
-                      <a
-                        href={whatsappUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 w-full py-3 rounded-lg bg-[#25D366] hover:bg-[#20BD5A] text-white font-medium transition-colors"
-                      >
-                        <MessageCircle className="w-5 h-5" /> WhatsApp Landlord
-                      </a>
+                    {property.availability_status === 'occupied' ? (
+                      <div className="rounded-lg border bg-muted/60 p-4 text-center space-y-1">
+                        <Lock className="w-5 h-5 text-muted-foreground mx-auto" />
+                        <p className="text-sm font-medium">Currently occupied</p>
+                        <p className="text-xs text-muted-foreground">
+                          The landlord isn't accepting new inquiries on this listing right now.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <Button className="w-full" size="lg" onClick={handleContactClick}>
+                          <MessageCircle className="w-4 h-4 mr-2" /> Contact landlord
+                        </Button>
+                        {property.availability_status === 'reserved' && (
+                          <p className="text-[11px] text-center text-amber-700">
+                            This listing is reserved. The landlord may still consider backup inquiries.
+                          </p>
+                        )}
+                        <p className="text-[11px] text-center text-muted-foreground">
+                          No broker fees. Conversations stay tied to your Pango account.
+                        </p>
+                      </>
                     )}
-                    {owner.phone && user && (
-                      <Button className="w-full" asChild>
-                        <a href={`tel:${owner.phone}`}><Phone className="w-4 h-4 mr-2" /> Call {owner.phone}</a>
-                      </Button>
-                    )}
-                    <Button variant="outline" className="w-full" asChild>
-                      <a href={`mailto:?subject=Inquiry about ${property.title}`}><Mail className="w-4 h-4 mr-2" /> Send Email</a>
-                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -336,6 +365,11 @@ export default function PropertyDetail() {
       </div>
 
       <ReportDialog propertyId={property.id} open={reportOpen} onOpenChange={setReportOpen} />
+      <InquiryDialog
+        propertyId={property.id}
+        open={inquiryOpen}
+        onOpenChange={setInquiryOpen}
+      />
     </div>
   );
 }

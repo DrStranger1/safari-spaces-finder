@@ -43,6 +43,56 @@ export type Database = {
           },
         ]
       }
+      inquiries: {
+        Row: {
+          contact_revealed: boolean
+          created_at: string
+          id: string
+          landlord_id: string
+          message: string
+          move_in_date: string | null
+          party_size: number | null
+          property_id: string
+          renter_id: string
+          status: Database["public"]["Enums"]["inquiry_status"]
+          updated_at: string
+        }
+        Insert: {
+          contact_revealed?: boolean
+          created_at?: string
+          id?: string
+          landlord_id?: string
+          message: string
+          move_in_date?: string | null
+          party_size?: number | null
+          property_id: string
+          renter_id: string
+          status?: Database["public"]["Enums"]["inquiry_status"]
+          updated_at?: string
+        }
+        Update: {
+          contact_revealed?: boolean
+          created_at?: string
+          id?: string
+          landlord_id?: string
+          message?: string
+          move_in_date?: string | null
+          party_size?: number | null
+          property_id?: string
+          renter_id?: string
+          status?: Database["public"]["Enums"]["inquiry_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inquiries_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nearby_services: {
         Row: {
           created_at: string
@@ -119,6 +169,7 @@ export type Database = {
           address: string
           amenities: string[] | null
           area_sqm: number | null
+          availability_status: Database["public"]["Enums"]["availability_status"]
           bathrooms: number
           bedrooms: number
           created_at: string
@@ -142,6 +193,7 @@ export type Database = {
           address?: string
           amenities?: string[] | null
           area_sqm?: number | null
+          availability_status?: Database["public"]["Enums"]["availability_status"]
           bathrooms?: number
           bedrooms?: number
           created_at?: string
@@ -165,6 +217,7 @@ export type Database = {
           address?: string
           amenities?: string[] | null
           area_sqm?: number | null
+          availability_status?: Database["public"]["Enums"]["availability_status"]
           bathrooms?: number
           bedrooms?: number
           created_at?: string
@@ -185,6 +238,38 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      property_views: {
+        Row: {
+          created_at: string
+          id: string
+          property_id: string
+          session_id: string | null
+          viewer_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          property_id: string
+          session_id?: string | null
+          viewer_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          property_id?: string
+          session_id?: string | null
+          viewer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_views_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       property_images: {
         Row: {
@@ -245,6 +330,42 @@ export type Database = {
         }
         Relationships: []
       }
+      verification_requests: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewer_id: string | null
+          status: Database["public"]["Enums"]["verification_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          status?: Database["public"]["Enums"]["verification_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          status?: Database["public"]["Enums"]["verification_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -278,6 +399,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "landlord" | "renter"
+      availability_status: "available" | "reserved" | "occupied"
+      inquiry_status: "new" | "replied" | "closed"
       property_status: "pending" | "active" | "inactive" | "rejected"
       property_type: "house" | "apartment" | "room" | "office" | "commercial"
       service_type:
@@ -289,6 +412,7 @@ export type Database = {
         | "restaurant"
         | "bank"
         | "other"
+      verification_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never

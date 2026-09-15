@@ -7,27 +7,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Database } from '@/integrations/supabase/types';
+import InquiryDialog from '@/features/inquiries/InquiryDialog';
 
 type Property = Database['public']['Tables']['properties']['Row'];
 
 export default function Favorites() {
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [properties, setProperties] = useState<Property[]>([]);
   const [images, setImages] = useState<Record<string, string>>({});
-  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!isLoading && !user) navigate('/login');
-  }, [user, isLoading]);
+  const [inquiryPropertyId, setInquiryPropertyId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     const fetch = async () => {
       const { data: favs } = await supabase.from('favorites').select('property_id').eq('user_id', user.id);
       const ids = favs?.map(f => f.property_id) || [];
-      setFavoriteIds(new Set(ids));
 
       if (ids.length > 0) {
         const { data } = await supabase.from('properties').select('*').in('id', ids);
@@ -46,7 +42,6 @@ export default function Favorites() {
   const removeFavorite = async (propertyId: string) => {
     if (!user) return;
     await supabase.from('favorites').delete().eq('user_id', user.id).eq('property_id', propertyId);
-    setFavoriteIds(prev => { const n = new Set(prev); n.delete(propertyId); return n; });
     setProperties(prev => prev.filter(p => p.id !== propertyId));
   };
 
@@ -78,11 +73,17 @@ export default function Favorites() {
                 imageUrl={images[p.id]}
                 isFavorite={true}
                 onToggleFavorite={() => removeFavorite(p.id)}
+                onContact={() => setInquiryPropertyId(p.id)}
               />
             ))}
           </div>
         )}
       </div>
+      <InquiryDialog
+        propertyId={inquiryPropertyId}
+        open={!!inquiryPropertyId}
+        onOpenChange={(o) => !o && setInquiryPropertyId(null)}
+      />
     </div>
   );
 }

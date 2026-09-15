@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card, CardContent, CardHeader, CardTitle, CardDescription,
+} from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { Home, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+type LocationState = { from?: { pathname?: string } } | null;
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -14,7 +18,13 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  const state = location.state as LocationState;
+  const redirectTo =
+    searchParams.get('redirect') ?? state?.from?.pathname ?? '/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,10 +33,14 @@ export default function Login() {
     setLoading(false);
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } else {
-      navigate('/dashboard');
+      return;
     }
+    navigate(redirectTo, { replace: true });
   };
+
+  const signupHref = searchParams.get('redirect')
+    ? `/signup?redirect=${encodeURIComponent(searchParams.get('redirect')!)}`
+    : '/signup';
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -56,7 +70,8 @@ export default function Login() {
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            Don't have an account? <Link to="/signup" className="text-primary hover:underline font-medium">Sign Up</Link>
+            Don't have an account?{' '}
+            <Link to={signupHref} className="text-primary hover:underline font-medium">Sign Up</Link>
           </p>
         </CardContent>
       </Card>
